@@ -38,35 +38,37 @@ const MemberRole = styled(Typography)(({ theme }) => ({
   color: theme.palette.text.secondary,
   fontSize: '1rem',
   marginTop: theme.spacing(1),
+  whiteSpace: 'pre-line'
 }));
 
 // About Us Component
 export default function AboutUs() {
   const teamMembers = [
     {
-      name: 'Arin Lale',
-      image: arinImage,
-      description: 'B.E. Artificial Intelligence and Data Science',
-      role: 'AI and Backend Development'
-    },
-    {
       name: 'Ashish Ransing',
       image: ashishImage,
       description: 'B.E. Artificial Intelligence and Data Science',
-      role: 'Frontend Development'
+      role: 'Frontend and Backend Development'
     },
     {
-      name: 'Aryan Gole',
-      image: aryanImage,
+      name: 'Arin Lale',
+      image: arinImage,
       description: 'B.E. Artificial Intelligence and Data Science',
-      role: 'Integration and Backend'
+      role: 'AI Model and API\nIntegration'
     },
     {
       name: 'Siddheya Lohar',
       image: siddImage,
       description: 'B.E. Artificial Intelligence and Data Science',
-      role: 'Database Management'
+      role: 'Database\nManagement'
     },
+    {
+      name: 'Aryan Gole',
+      image: aryanImage,
+      description: 'B.E. Artificial Intelligence and Data Science',
+      role: 'Backend\nDevelopment'
+    },
+    
   ];
 
   return (

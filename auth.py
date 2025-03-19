@@ -6,6 +6,10 @@ import jwt
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel
+import secrets
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 # JWT Secret Key & Algorithm
 SECRET_KEY = "c587ee0dd8cc5a7c23de162a36f10d4c12d4fd776f488ccf90e4ee38000c4467"  # Change this to a secure secret key
@@ -49,6 +53,57 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
+# New models for password reset
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+# Email configuration
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USERNAME = "team.se7enhack@gmail.com"  # Replace with your email
+EMAIL_PASSWORD = "xzal tkjw rovw nfma"      # Replace with your app password
+EMAIL_FROM = "team.se7enhack@gmail.com"       # Replace with your email
+
+def send_reset_email(email: str, reset_token: str):
+    try:
+        reset_link = f"http://localhost:3000/reset-password?token={reset_token}"
+        
+        message = MIMEMultipart()
+        message["From"] = EMAIL_FROM
+        message["To"] = email
+        message["Subject"] = "Password Reset Request - SkillFit AI"
+        
+        body = f"""
+        Hello,
+        
+        You have requested to reset your password for your SkillFit AI account.
+        
+        Please click on the following link to reset your password:
+        {reset_link}
+        
+        This link will expire in 30 minutes.
+        
+        If you did not request this password reset, please ignore this email.
+        
+        Best regards,
+        SkillFit AI Team
+        """
+        
+        message.attach(MIMEText(body, "plain"))
+        
+        with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT) as server:
+            server.starttls()
+            server.login(EMAIL_USERNAME, EMAIL_PASSWORD)
+            server.send_message(message)
+            
+        return True
+    except Exception as e:
+        print(f"Error sending email: {str(e)}")
+        return False
 
 # Signup endpoint
 class SignUpRequest(BaseModel):
@@ -145,3 +200,97 @@ def get_user_details(token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=401, detail="Token has expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+@auth_router.post("/forgot-password")
+async def forgot_password(request: ForgotPasswordRequest):
+    try:
+        print(f"Processing password reset request for email: {request.email}")
+        
+        # Check if email exists
+        cursor.execute("SELECT id FROM users WHERE email = %s", (request.email,))
+        user = cursor.fetchone()
+        
+        if not user:
+            print(f"Email not found: {request.email}")
+            raise HTTPException(status_code=404, detail="Email not found")
+        
+        # Generate reset token
+        reset_token = secrets.token_urlsafe(32)
+        expiry = datetime.utcnow() + timedelta(minutes=30)
+        
+        print(f"Generated token: {reset_token[:10]}... for user ID: {user['id']}")
+        
+        # Store reset token in database
+        cursor.execute(
+            """
+            INSERT INTO password_resets (id, token, expires_at)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (id) DO UPDATE
+            SET token = EXCLUDED.token, 
+                expires_at = EXCLUDED.expires_at
+            """,
+            (user["id"], reset_token, expiry)
+        )
+        conn.commit()
+        
+        # Send reset email
+        if send_reset_email(request.email, reset_token):
+            print(f"Reset email sent successfully to {request.email}")
+            return {"message": "Password reset instructions sent to your email"}
+        else:
+            print(f"Failed to send reset email to {request.email}")
+            raise HTTPException(status_code=500, detail="Failed to send reset email")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in forgot_password: {str(e)}")
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@auth_router.post("/reset-password")
+async def reset_password(request: ResetPasswordRequest):
+    try:
+        print(f"Attempting to reset password with token: {request.token[:10]}...")  # Print first 10 chars for debugging
+        
+        # Verify token and get user
+        cursor.execute(
+            """
+            SELECT id, expires_at
+            FROM password_resets
+            WHERE token = %s
+            """,
+            (request.token,)
+        )
+        reset_record = cursor.fetchone()
+        
+        if not reset_record:
+            print("No reset record found for token")
+            raise HTTPException(status_code=400, detail="Invalid reset token")
+            
+        # Check if token has expired
+        if reset_record["expires_at"] < datetime.utcnow():
+            print("Token has expired")
+            cursor.execute("DELETE FROM password_resets WHERE id = %s", (reset_record["id"],))
+            conn.commit()
+            raise HTTPException(status_code=400, detail="Reset token has expired")
+        
+        # Update password
+        hashed_password = hash_password(request.new_password)
+        cursor.execute(
+            "UPDATE users SET password_hash = %s WHERE id = %s",
+            (hashed_password, reset_record["id"])
+        )
+        
+        # Delete used token
+        cursor.execute("DELETE FROM password_resets WHERE id = %s", (reset_record["id"],))
+        conn.commit()
+        
+        return {"message": "Password reset successful"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in reset_password: {str(e)}")
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))

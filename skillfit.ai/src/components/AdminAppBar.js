@@ -129,7 +129,7 @@ export default function AdminAppBar() {
                 color="info"
                 size="small"
               >
-                Course Recommendations
+                Courses
               </Button>
             </Box>
           </Box>
@@ -138,7 +138,16 @@ export default function AdminAppBar() {
            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer' }} onClick={handleMenuOpen}>
               <AccountCircleIcon fontSize="medium" color="info" />
-              <Typography sx={{ fontWeight: 500 }} color="info">{fullName}</Typography>
+              <Typography 
+                sx={{ 
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  textShadow: '0px 0px 1px rgba(0, 0, 0, 0.2)'
+                }} 
+                color="info"
+              >
+                {fullName}
+              </Typography>
             </Box>
             <ColorModeIconDropdown />
           </Box>
@@ -182,7 +191,7 @@ export default function AdminAppBar() {
                   Student Details
                 </MenuItem>
                 <MenuItem component={Link} to="/courses" smooth={true} duration={500}>
-                  Course Recommendations
+                  Course
                 </MenuItem>
               </Box>
             </Drawer>

@@ -1,49 +1,91 @@
-import React from 'react';
-import { Box, CssBaseline, Typography, Grid, Card } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, CssBaseline, Typography, Grid, Card, CircularProgress } from '@mui/material';
 import { LineChart, BarChart, PieChart } from '@mui/x-charts';
 import AppTheme from './theme/AppTheme';
 import AdminAppBar from './components/AdminAppBar';
+import axios from 'axios';
 
 const AdminDashboard = (props) => {
-  // Define datasets for each chart
-  const resumeScanDataset = [
-    { x: 'Jan', y: 50 },
-    { x: 'Feb', y: 70 },
-    { x: 'Mar', y: 90 },
-    { x: 'Apr', y: 60 },
-    { x: 'May', y: 120 },
+  const [loading, setLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get('http://localhost:8000/admin/dashboard-stats', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        setDashboardData(response.data);
+      } catch (err) {
+        setError(err.response?.data?.detail || 'Failed to fetch dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return (
+      <AppTheme {...props}>
+        <CssBaseline enableColorScheme />
+        <AdminAppBar />
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <CircularProgress />
+        </Box>
+      </AppTheme>
+    );
+  }
+
+  if (error) {
+    return (
+      <AppTheme {...props}>
+        <CssBaseline enableColorScheme />
+        <AdminAppBar />
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <Typography color="error">{error}</Typography>
+        </Box>
+      </AppTheme>
+    );
+  }
+
+  // KPI Cards
+  const kpiCards = [
+    { title: 'Total Users', value: dashboardData.kpi.total_users },
+    { title: 'Total Resumes Scanned', value: dashboardData.kpi.total_resumes },
+    { title: 'Total Jobs Analyzed', value: dashboardData.kpi.total_jobs },
+    { title: 'Average Match Rate', value: `${dashboardData.kpi.avg_match_rate.toFixed(2)}%` },
+    { title: 'Top Department', value: dashboardData.kpi.top_department },
+    { title: 'Total Departments', value: dashboardData.charts.students_by_department.length }
   ];
 
-  const issueBreakdownDataset = [
-    { x: 'Searchability', y: 40 },
-    { x: 'Hard Skills', y: 60 },
-    { x: 'Soft Skills', y: 50 },
-    { x: 'Recruiter Tips', y: 30 },
-    { x: 'Formatting', y: 20 },
-    { x: 'Keywords', y: 90 },
-  ];
+  // Transform data for charts
+  const resumeScanDataset = dashboardData.charts.resume_scans.map(scan => ({
+    x: new Date(scan.month).toLocaleString('default', { month: 'short' }),
+    y: parseInt(scan.count)
+  }));
 
-  const hardSkillsDataset = [
-    { label: 'Python', value: 40 },
-    { label: 'SQL', value: 30 },
-    { label: 'React', value: 20 },
-    { label: 'Data Analysis', value: 10 },
-  ];
-  
+  const studentsByDepartmentDataset = dashboardData.charts.students_by_department
+    .filter(dept => dept.department !== 'N/A') // Exclude 'N/A' department
+    .map(dept => ({
+      x: dept.department,
+      y: dept.students.split(', ').filter(name => name !== 'Admin User').length // Count students
+    }));
 
-  const studentEngagementDataset = [
-    { x: 'Computer Science', y: 80 },
-    { x: 'Mechanical', y: 50 },
-    { x: 'Electronics', y: 40 },
-    { x: 'Civil', y: 30 },
-  ];
+  const topStudentsDataset = dashboardData.charts.top_students.map(student => ({
+    x: student.full_name,
+    y: parseInt(student.highest_match_score)
+  }));
 
-  const matchRateDataset = [
-    { x: '50-60%', y: 20 },
-    { x: '60-70%', y: 40 },
-    { x: '70-80%', y: 30 },
-    { x: '80-90%', y: 10 },
-  ];
+  const resumesByDepartmentDataset = dashboardData.charts.resumes_by_department.map(dept => ({
+    x: dept.department,
+    y: parseInt(dept.resume_count)
+  }));
 
   return (
     <AppTheme {...props}>
@@ -67,114 +109,115 @@ const AdminDashboard = (props) => {
             mb: 4,
             textAlign: 'center',
             mt: 10,
+            ml: 10,
           }}
         >
           Admin Dashboard
         </Typography>
-        <Grid container spacing={4}>
-          {/* Resumes Scanned Over Time */}
+        <Grid container spacing={4} justifyContent="center">
+          {kpiCards.map((kpi, index) => (
+            <Grid item xs={12} md={4} key={index}>
+              <Card sx={{ p: 3, boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)', borderRadius: 3, textAlign: 'center' }}>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>{kpi.title}</Typography>
+                <Typography variant="h4" sx={{ color: 'primary.main' }}>{kpi.value}</Typography>
+              </Card>
+            </Grid>
+          ))}
+
+          {/* Resumes Scanned by Month */}
           <Grid item xs={12} md={6}>
             <Card sx={{ p: 3, boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)', borderRadius: 3 }}>
               <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, textAlign: 'center' }}>
-                Resumes Scanned Over Time
+                Resumes Scanned by Month
               </Typography>
               <LineChart
                 dataset={resumeScanDataset}
-                xAxis={[{ dataKey: 'x', scaleType: 'band' }]}
-                series={[{ dataKey: 'y' }]}
+                xAxis={[{ 
+                  dataKey: 'x',
+                  scaleType: 'band',
+                  tickLabelStyle: { angle: 0, textAnchor: 'middle' }
+                }]}
+                series={[{ 
+                  dataKey: 'y',
+                  label: 'Scans',
+                  color: '#2196f3',
+                  area: true,
+                }]}
                 width={650}
                 height={300}
               />
             </Card>
           </Grid>
 
-          {/* Issues Breakdown */}
+          {/* Students by Department */}
           <Grid item xs={12} md={6}>
             <Card sx={{ p: 3, boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)', borderRadius: 3 }}>
               <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, textAlign: 'center' }}>
-                Issues Breakdown
+                Students by Department
               </Typography>
               <BarChart
-                dataset={issueBreakdownDataset}
-                xAxis={[{ dataKey: 'x', scaleType: 'band' }]}
-                series={[{ dataKey: 'y' }]}
+                dataset={studentsByDepartmentDataset}
+                xAxis={[{ 
+                  dataKey: 'x',
+                  scaleType: 'band',
+                  tickLabelStyle: { angle: 0, textAnchor: 'middle' }
+                }]}
+                series={[{ 
+                  dataKey: 'y',
+                  label: 'Number of Students',
+                  color: '#3f51b5'
+                }]}
                 width={650}
                 height={300}
               />
             </Card>
           </Grid>
 
-          {/* Hard Skills Pie Chart */}
-          <Grid item xs={12} md={6}>
-            <Card
-              sx={{
-                p: 3,
-                boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)',
-                borderRadius: 3,
-                textAlign: 'center',
-              }}
-            >
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-                Top Missing Hard Skills
-              </Typography>
-              <PieChart
-                series={[
-                  {
-                    data: hardSkillsDataset,
-                    valueKey: 'value',
-                    idKey: 'id',
-                    highlightScope: { fade: 'global', highlight: 'item' }, // Highlights the active arc
-                    faded: { innerRadius: 30, additionalRadius: -30, color: 'lightgray' }, // Styling for inactive arcs
-                    label: {
-                      formatter: (params) => `${params.value}`, // Combines key and value
-                      position: 'inside', // Places the label outside the arc
-                      style: { fontSize: 14, fontWeight: 'bold', fill: '#333' }, // Custom styling for the labels
-                    },
-                    innerRadius: 50, // Adjusts the size of the inner circle
-                    outerRadius: 120, // Adjusts the size of the chart
-                  },
-                ]}
-                height={300}
-                width={600}
-              />
-            </Card>
-          </Grid>
-
-
-          {/* Student Engagement by Department */}
+          {/* Top 5 Students by Match Rate */}
           <Grid item xs={12} md={6}>
             <Card sx={{ p: 3, boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)', borderRadius: 3 }}>
               <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, textAlign: 'center' }}>
-                Student Engagement by Department
+                Top 5 Students by Highest Match Rate
               </Typography>
               <BarChart
-                dataset={studentEngagementDataset}
-                xAxis={[{ dataKey: 'x', scaleType: 'band' }]}
-                series={[{ dataKey: 'y' }]}
+                dataset={topStudentsDataset}
+                xAxis={[{ 
+                  dataKey: 'x',
+                  scaleType: 'band',
+                  tickLabelStyle: { angle: 0, textAnchor: 'middle' }
+                }]}
+                series={[{ 
+                  dataKey: 'y',
+                  label: 'Highest Match Rate',
+                  color: '#4caf50'
+                }]}
+                layout="vertical"
                 width={650}
                 height={300}
               />
             </Card>
           </Grid>
 
-                    {/* Match Rate Distribution */}
-                    <Grid item xs={12}>
-            <Card
-              sx={{
-                p: 3,
-                boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)',
-                borderRadius: 3,
-              }}
-            >
+          {/* Resumes Scanned by Department */}
+          <Grid item xs={12} md={6}>
+            <Card sx={{ p: 3, boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)', borderRadius: 3 }}>
               <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, textAlign: 'center' }}>
-                Match Rate Distribution
+                Resumes Scanned by Department
               </Typography>
               <BarChart
-                dataset={matchRateDataset}
-                xAxis={[{ dataKey: 'x', scaleType: 'band' }]}
-                series={[{ dataKey: 'y' }]}
-                width={1350}
-                height={450}
+                dataset={resumesByDepartmentDataset}
+                xAxis={[{ 
+                  dataKey: 'x',
+                  scaleType: 'band',
+                  tickLabelStyle: { angle: 0, textAnchor: 'middle' }
+                }]}
+                series={[{ 
+                  dataKey: 'y',
+                  label: 'Resumes',
+                  color: '#ff9800'
+                }]}
+                width={650}
+                height={300}
               />
             </Card>
           </Grid>

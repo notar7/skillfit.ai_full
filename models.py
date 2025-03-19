@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, TIMESTAMP, func, CheckConstraint
+from sqlalchemy import Column, Integer, LargeBinary, String, ForeignKey, TIMESTAMP, Text, func, CheckConstraint
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
@@ -25,3 +25,24 @@ class UserDetails(Base):
     department = Column(String(50), nullable=False)
     year = Column(String(10), nullable=False)
     college_name = Column(String(100), server_default="PES's Modern College Of Engineering, Pune")
+
+
+class ScannedResume(Base):
+    __tablename__ = "scanned_resumes"
+
+    resume_id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    resume_name = Column(String(255), nullable=False)
+    resume_file = Column(LargeBinary, nullable=False)  # Stores the PDF file
+    scanned_at = Column(TIMESTAMP, server_default=func.now())
+    job_id = Column(Integer, autoincrement=True)
+    job_description = Column(Text, nullable=False)
+
+class Course(Base):
+    __tablename__ = "courses"
+
+    course_id = Column(Integer, primary_key=True, autoincrement=True)
+    course_name = Column(String(255), nullable=False)
+    course_source = Column(String(100), nullable=False)
+    course_category = Column(String(100), nullable=False)
+    course_link = Column(Text, nullable=False)

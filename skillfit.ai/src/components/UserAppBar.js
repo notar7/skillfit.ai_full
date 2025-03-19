@@ -110,21 +110,17 @@ export default function UserAppBar() {
                 Scan a Resume
               </Button>
               <Button
-                component={ScrollLink}
-                to="my-account"
-                smooth={true}
-                duration={500}
+                component={Link}
+                to="/course-recommendation"
                 variant="text"
                 color="info"
                 size="small"
               >
-                My Account
+                Course Recommendations
               </Button>
               <Button
-                component={ScrollLink}
-                to="scan-history"
-                smooth={true}
-                duration={500}
+                component={Link}
+                to="/scan-history"
                 variant="text"
                 color="info"
                 size="small"
@@ -138,7 +134,16 @@ export default function UserAppBar() {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer' }} onClick={handleMenuOpen}>
               <AccountCircleIcon fontSize="medium" color="info"/>
-              <Typography sx={{ fontWeight: 500 }} color="info">{fullName}</Typography>
+              <Typography 
+                sx={{ 
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  textShadow: '0px 0px 1px rgba(0, 0, 0, 0.2)'
+                }} 
+                color="info"
+              >
+                {fullName}
+              </Typography>
             </Box>
             <ColorModeIconDropdown />
           </Box>
@@ -175,13 +180,13 @@ export default function UserAppBar() {
                 </Box>
 
                 {/* Mobile Drawer Menu Links */}
-                <MenuItem component={Link} to="scan-resume" smooth={true} duration={500}>
+                <MenuItem component={Link} to="/upload-resume" smooth={true} duration={500}>
                   Scan a Resume
                 </MenuItem>
-                <MenuItem component={Link} to="my-account" smooth={true} duration={500}>
-                  My Account
+                <MenuItem component={Link} to="/course-recommendation" smooth={true} duration={500}>
+                  Course Recommendations
                 </MenuItem>
-                <MenuItem component={Link} to="scan-history" smooth={true} duration={500}>
+                <MenuItem component={Link} to="/scan-history">
                   Scan History
                 </MenuItem>
               </Box>

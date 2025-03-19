@@ -8,6 +8,9 @@ import AnalysisPage from './AnalysisPage';
 import AdminDashboard from './AdminDashboard';
 import StudentDetails from './StudentDetails';
 import CourseRecommendation from './CourseRecommendation';
+import ScanHistory from './ScanHistory';
+import Courses from './Courses';
+import ResetPassword from './components/ResetPassword';
 
 // Mock authentication function (Replace with actual authentication logic)
 const getUserRole = () => {
@@ -43,8 +46,10 @@ function App() {
         <Route path="/signup" element={<SignUp />} />
         <Route path="/analysis" element={<AnalysisPage />} />
         <Route path="/student-details" element={<StudentDetails />} />
-        <Route path="/courses" element={<CourseRecommendation />} />
-
+        <Route path="/courses" element={<Courses />} />
+        <Route path="/course-recommendation" element={<CourseRecommendation />} />
+        <Route path="/scan-history" element={<ScanHistory />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         {/* Protected Routes */}
         <Route path="/upload-resume" element={<ProtectedRoute element={<ResumeUploadPage />} allowedRoles={['user']} />} />
         <Route path="/admin-dashboard" element={<ProtectedRoute element={<AdminDashboard />} allowedRoles={['admin']} />} />

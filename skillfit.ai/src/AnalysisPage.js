@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import { Box, CssBaseline, Typography, Grid, Card, CardContent, Button, Divider, LinearProgress, CircularProgress } from '@mui/material';
 import AppTheme from './theme/AppTheme';
 import UserAppBar from './components/UserAppBar';
@@ -15,7 +15,16 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
 const AnalysisPage = (props) => {
   const location = useLocation();
+  const [error, setError] = React.useState(null);
   const analysisData = location.state?.analysisData || {};
+
+  React.useEffect(() => {
+    // Validate that we have the required data
+    if (!location.state?.analysisData) {
+      setError("No analysis data available. Please try scanning your resume again.");
+      return;
+    }
+  }, [location.state]);
 
   const matchPercentage = parseInt(analysisData["JD Match"]?.replace('%', '')) || 0;
   const matchRateColor = matchPercentage >= 75 ? 'green' : matchPercentage >= 35 ? 'yellow' : 'red';
@@ -28,13 +37,24 @@ const AnalysisPage = (props) => {
 
 
   const issues = {
-
-    "Missing Skills": { count: analysisData["Missing Skills"]?.length || 0, icon: <HandymanIcon /> },
-    "Soft Skill Issues": { count: analysisData["Soft Skill Issues"]?.length || 0, icon: <TipsAndUpdatesIcon /> },
-    "Formatting Issues": { count: analysisData["Formatting Issues"]?.length || 0, icon: <FormatAlignLeftIcon /> },
-    "Keyword Issues": { count: analysisData["Keyword Issues"]?.length || 0, icon: <KeywordsIcon /> },
-    "Recruiter Tips": { count: analysisData["Recruiter Tips"]?.length || 0, icon: <TipsAndUpdatesIcon /> },
+    "Missing Skills": { count: Array.isArray(analysisData["Missing Skills"]) ? analysisData["Missing Skills"].length : 0, icon: <HandymanIcon /> },
+    "Soft Skill Issues": { count: Array.isArray(analysisData["Soft Skill Issues"]) ? analysisData["Soft Skill Issues"].length : 0, icon: <TipsAndUpdatesIcon /> },
+    "Formatting Issues": { count: Array.isArray(analysisData["Formatting Issues"]) ? analysisData["Formatting Issues"].length : 0, icon: <FormatAlignLeftIcon /> },
+    "Keyword Issues": { count: Array.isArray(analysisData["Keyword Issues"]) ? analysisData["Keyword Issues"].length : 0, icon: <KeywordsIcon /> },
+    "Recruiter Tips": { count: Array.isArray(analysisData["Recruiter Tips"]) ? analysisData["Recruiter Tips"].length : 0, icon: <TipsAndUpdatesIcon /> },
   };
+
+  if (error) {
+    return (
+      <AppTheme {...props}>
+        <CssBaseline enableColorScheme />
+        <UserAppBar />
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+          <Typography color="error" variant="h6">{error}</Typography>
+        </Box>
+      </AppTheme>
+    );
+  }
 
   return (
     <AppTheme {...props}>
@@ -50,8 +70,15 @@ const AnalysisPage = (props) => {
             <Typography variant="h5" sx={{ color: matchRateColor, fontWeight: 'bold', position: 'absolute' }}>{matchPercentage}%</Typography>
           </Box>
           <Box sx={{ textAlign: 'center', mt: 3 }}>
-            <Button variant="contained" startIcon={<CloudUploadIcon />} sx={{ mb: 1, width: '100%' }}>Upload & Rescan</Button>
-            <Button variant="outlined" startIcon={<EditIcon />} sx={{ width: '100%' }}>Save to Scan History</Button>
+            <Button
+              component={Link}
+              to="/upload-resume"
+              variant="contained"
+              startIcon={<CloudUploadIcon />}
+              sx={{ width: '100%' }}
+            >
+              Upload New & Rescan
+            </Button>
           </Box>
           <Divider sx={{ my: 3 }} />
           {Object.entries(issues).map(([key, { count, icon }], index) => (

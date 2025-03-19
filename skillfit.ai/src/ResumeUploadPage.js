@@ -57,6 +57,8 @@ const ResumeUploader = (props) => {
     setJobDescription(job);
   };
 
+  const token = localStorage.getItem('token'); // Get token from localStorage
+
   const handleAnalysis = async () => {
     if (!uploadedFile || !jobDescription) {
       alert('Please upload a resume and enter a job description.');
@@ -72,14 +74,33 @@ const ResumeUploader = (props) => {
       const response = await axios.post('http://localhost:8000/analyze-resume', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
         },
       });
+      
       console.log("Response:", response.data);
-      let cleanedData = response.data.analysis.replace(/```json|```/g, "").trim();
-      setAnalysisData(JSON.parse(cleanedData));
-      navigate('/analysis', { state: { analysisData: JSON.parse(cleanedData) } });
+      
+      if (response.data.message) {
+        console.log(response.data.message);
+      }
+
+      // The backend now sends the already parsed analysis
+      const analysisData = response.data.analysis;
+      
+      if (!analysisData || typeof analysisData !== 'object') {
+        throw new Error('Invalid analysis data received');
+      }
+
+      setAnalysisData(analysisData);
+      navigate('/analysis', { state: { analysisData } });
+
     } catch (error) {
       console.error('Error analyzing resume:', error);
+      let errorMessage = 'Error analyzing resume. Please try again.';
+      if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      }
+      alert(errorMessage);
     } finally {
       setIsAnalyzing(false);
     }

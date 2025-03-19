@@ -39,37 +39,6 @@ export default function Footer() {
           <Link href="#aboutus" color="inherit" underline="hover">
             About Us
           </Link>
-          <Link href="#contact" color="inherit" underline="hover">
-            Contact
-          </Link>
-        </Box>
-
-        {/* Social Media Links */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mb: 2 }}>
-          <IconButton
-            href="https://github.com"
-            target="_blank"
-            aria-label="GitHub"
-            sx={{ color: 'white' }}
-          >
-            <GitHubIcon />
-          </IconButton>
-          <IconButton
-            href="https://linkedin.com"
-            target="_blank"
-            aria-label="LinkedIn"
-            sx={{ color: 'white' }}
-          >
-            <LinkedInIcon />
-          </IconButton>
-          <IconButton
-            href="https://twitter.com"
-            target="_blank"
-            aria-label="Twitter"
-            sx={{ color: 'white' }}
-          >
-            <TwitterIcon />
-          </IconButton>
         </Box>
 
         {/* Copyright */}

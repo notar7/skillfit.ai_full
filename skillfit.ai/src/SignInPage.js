@@ -65,15 +65,25 @@ export default function SignInSide(props) {
   const [open, setOpen] = React.useState(false);
   const navigate = useNavigate();
 
+  const clearErrors = () => {
+    setEmailError(false);
+    setEmailErrorMessage('');
+    setPasswordError(false);
+    setPasswordErrorMessage('');
+  };
+
   const handleClickOpen = () => {
+    clearErrors();
     setOpen(true);
   };
 
   const handleClose = () => {
+    clearErrors();
     setOpen(false);
   };
 
   const validateInputs = () => {
+    clearErrors();
     const email = document.getElementById('email');
     const password = document.getElementById('password');
 
@@ -83,18 +93,12 @@ export default function SignInSide(props) {
       setEmailError(true);
       setEmailErrorMessage('Please enter a valid email address.');
       isValid = false;
-    } else {
-      setEmailError(false);
-      setEmailErrorMessage('');
     }
 
     if (!password.value || password.value.length < 6) {
       setPasswordError(true);
       setPasswordErrorMessage('Password must be at least 6 characters long.');
       isValid = false;
-    } else {
-      setPasswordError(false);
-      setPasswordErrorMessage('');
     }
 
     return isValid;
@@ -113,32 +117,35 @@ export default function SignInSide(props) {
   
     try {
       const formData = new URLSearchParams();
-      formData.append("username", email); // OAuth2 expects 'username' instead of 'email'
+      formData.append("username", email);
       formData.append("password", password);
   
       const response = await fetch('http://localhost:8000/token', {  
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, // Change to form data type
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: formData,
       });
   
       const result = await response.json();
   
       if (response.ok) {
+        clearErrors(); // Clear any existing errors on successful login
         localStorage.setItem('token', result.access_token);
   
-        const payload = JSON.parse(atob(result.access_token.split('.')[1])); // Decode JWT
+        const payload = JSON.parse(atob(result.access_token.split('.')[1]));
         if (payload.role === 'admin') {
           navigate('/admin-dashboard');
         } else {
           navigate('/upload-resume');
         }
       } else {
-        alert(result.detail || 'Login failed');
+        setEmailError(true);
+        setEmailErrorMessage(result.detail || 'Login failed');
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Something went wrong. Try again.');
+      setEmailError(true);
+      setEmailErrorMessage('Something went wrong. Try again.');
     }
   };
 
@@ -282,7 +289,7 @@ export default function SignInSide(props) {
                   label="Remember me"
                 />
                 <ForgotPassword open={open} handleClose={handleClose} />
-                <Button type="submit" fullWidth variant="contained" onClick={validateInputs}>
+                <Button type="submit" fullWidth variant="contained">
                   Sign in
                 </Button>
                 <Typography sx={{ textAlign: 'center' }}>

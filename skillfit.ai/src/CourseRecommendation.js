@@ -1,176 +1,184 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   CssBaseline,
   Typography,
-  Grid,
-  Card,
-  MenuItem,
-  Select,
   FormControl,
-  InputLabel,
+  Select,
+  MenuItem,
   Paper,
-  IconButton,
-  Avatar,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Button,
+  Pagination,
+  PaginationItem,
 } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import LaunchIcon from '@mui/icons-material/Launch';
 import AppTheme from './theme/AppTheme';
-import AdminAppBar from './components/AdminAppBar'; // Custom AppBar for Admin
+import UserAppBar from './components/UserAppBar';
+import axios from 'axios';
 
 const CourseRecommendation = (props) => {
-  // State to store courses data
-  const [coursesData, setCoursesData] = useState([
-    {
-      id: 1,
-      courseName: 'Data Science with Python',
-      skills: 'Python, Data Science, Machine Learning',
-      level: 'Intermediate',
-      duration: '3 months',
-      platform: 'Coursera',
-      thumbnail: 'https://via.placeholder.com/150', // Replace with actual image URL
-    },
-    {
-      id: 2,
-      courseName: 'Machine Learning A-Z',
-      skills: 'Python, Machine Learning, Deep Learning',
-      level: 'Beginner',
-      duration: '6 months',
-      platform: 'Udemy',
-      thumbnail: 'https://via.placeholder.com/150', // Replace with actual image URL
-    },
-    {
-      id: 3,
-      courseName: 'AI for Robotics',
-      skills: 'AI, Robotics, Python, Machine Learning',
-      level: 'Advanced',
-      duration: '4 months',
-      platform: 'Udacity',
-      thumbnail: 'https://via.placeholder.com/150', // Replace with actual image URL
-    },
-  ]);
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [category, setCategory] = useState('All');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  // State for dropdown filters
-  const [skillsFilter, setSkillsFilter] = useState('All');
-  const [levelFilter, setLevelFilter] = useState('All');
+  const ITEMS_PER_PAGE = 10;
 
-  // Filtered data based on dropdown selections
-  const filteredCourses = coursesData.filter((course) => {
-    return (
-      (skillsFilter === 'All' || course.skills.toLowerCase().includes(skillsFilter.toLowerCase())) &&
-      (levelFilter === 'All' || course.level === levelFilter)
-    );
-  });
+  const categories = [
+    "All",
+    "Data Science",
+    "Web Development",
+    "Android Development",
+    "iOS Development",
+    "UI/UX",
+    "Resume Tips",
+    "Interview Tips",
+    "Software Development",
+    "DSA",
+    "Competitive Programming",
+    "Cloud & DevOps",
+    "Cybersecurity"
+  ];
+
+  useEffect(() => {
+    fetchCourses();
+  }, [category, page]);
+
+  const fetchCourses = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:8000/courses', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        params: {
+          category: category === 'All' ? undefined : category,
+          page: page,
+          limit: ITEMS_PER_PAGE
+        }
+      });
+      
+      setCourses(response.data.courses);
+      setTotalPages(Math.ceil(response.data.total / ITEMS_PER_PAGE));
+      setError(null);
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+      setError('Failed to fetch courses. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVisitCourse = (url) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   return (
     <AppTheme {...props}>
       <CssBaseline enableColorScheme />
-      <AdminAppBar /> {/* Custom AppBar for Admin */}
+      <UserAppBar />
 
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: '100vh',
-          bgcolor: 'background.default',
-          p: 4,
-        }}
-      >
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 'bold',
-            color: 'text.primary',
-            mb: 4,
-            textAlign: 'center',
-            mt: 10, // Add margin-top to push it down
-          }}
-        >
-          Course Recommendations
+      <Box sx={{ p: 4, mt: 10 }}>
+        <Typography variant="h4" sx={{ mb: 4, textAlign: 'center', fontWeight: 'bold' }}>
+          Recommended Courses
         </Typography>
 
-        {/* Dropdown Filters */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2, gap: 4 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-              Skills:
-            </Typography>
-            <FormControl sx={{ minWidth: 150 }} size="small">
-              <Select
-                displayEmpty
-                value={skillsFilter}
-                onChange={(e) => setSkillsFilter(e.target.value)}
-              >
-                <MenuItem value="All">All</MenuItem>
-                <MenuItem value="Python">Python</MenuItem>
-                <MenuItem value="Machine Learning">Machine Learning</MenuItem>
-                <MenuItem value="Data Science">Data Science</MenuItem>
-                <MenuItem value="AI">AI</MenuItem>
-                <MenuItem value="Robotics">Robotics</MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-              Level:
-            </Typography>
-            <FormControl sx={{ minWidth: 120 }} size="small">
-              <Select
-                displayEmpty
-                value={levelFilter}
-                onChange={(e) => setLevelFilter(e.target.value)}
-              >
-                <MenuItem value="All">All</MenuItem>
-                <MenuItem value="Beginner">Beginner</MenuItem>
-                <MenuItem value="Intermediate">Intermediate</MenuItem>
-                <MenuItem value="Advanced">Advanced</MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
+        <Box sx={{ display: 'flex', mb: 3, alignItems: 'center', justifyContent: 'flex-end' }}>
+          <Typography variant="subtitle2" sx={{ mr: 2 }}>Select Category</Typography>
+          <FormControl sx={{ minWidth: 200 }}>
+            <Select
+              value={category}
+              onChange={(e) => {
+                setCategory(e.target.value);
+                setPage(1);
+              }}
+              size="small"
+            >
+              {categories.map((cat) => (
+                <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Box>
 
-        {/* Course Cards Display */}
-        <Grid container spacing={4} sx={{ justifyContent: 'center', px: 2 , pr: 10}}>
-          {filteredCourses.map((course) => (
-            <Grid item xs={12} sm={6} md={4} key={course.id}>
-              <Card
-                sx={{
-                  boxShadow: 3,
-                  p: 2,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  borderRadius: 2,
-                }}
-              >
-                {/* Thumbnail */}
-                <Avatar
-                  src={course.thumbnail}
-                  alt={course.courseName}
-                  sx={{ width: 150, height: 150, mb: 2, alignSelf: 'center' }}
-                />
+        {error && (
+          <Typography color="error" sx={{ mb: 2, textAlign: 'center' }}>
+            {error}
+          </Typography>
+        )}
 
-                <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-                  {course.courseName}
-                </Typography>
-                <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                  Skills: {course.skills}
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  Level: {course.level}
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  Duration: {course.duration}
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  Platform: {course.platform}
-                </Typography>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell align="center">Sr No</TableCell>
+                <TableCell align="center">Course Name</TableCell>
+                <TableCell align="center">Source</TableCell>
+                <TableCell align="center">Category</TableCell>
+                <TableCell align="center">Action</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={5} align="center">Loading...</TableCell>
+                </TableRow>
+              ) : courses.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} align="center">No courses found</TableCell>
+                </TableRow>
+              ) : (
+                courses.map((course, index) => (
+                  <TableRow key={course.course_id}>
+                    <TableCell align="center">{(page - 1) * ITEMS_PER_PAGE + index + 1}</TableCell>
+                    <TableCell align="center">{course.course_name}</TableCell>
+                    <TableCell align="center">{course.course_source}</TableCell>
+                    <TableCell align="center">{course.course_category}</TableCell>
+                    <TableCell align="center">
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        size="small"
+                        endIcon={<LaunchIcon />}
+                        onClick={() => handleVisitCourse(course.course_link)}
+                      >
+                        Visit Course
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
+          <Pagination
+            count={totalPages}
+            page={page}
+            onChange={(e, value) => setPage(value)}
+            renderItem={(item) => (
+              <PaginationItem
+                slots={{ previous: ArrowBackIcon, next: ArrowForwardIcon }}
+                {...item}
+              />
+            )}
+          />
+        </Box>
       </Box>
     </AppTheme>
   );
 };
 
-export default CourseRecommendation;
+export default CourseRecommendation; 

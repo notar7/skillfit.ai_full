@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   CssBaseline,
@@ -17,73 +17,98 @@ import {
   TableRow,
   Paper,
   IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete'; // Import the dustbin icon
 import AppTheme from './theme/AppTheme';
 import AdminAppBar from './components/AdminAppBar'; // Custom AppBar for Admin
+import axios from 'axios';
 
 const StudentDetails = (props) => {
-  // State to store students' data
-  const [studentsData, setStudentsData] = useState([
-    {
-      id: 1,
-      name: 'John Doe',
-      email: 'john.doe@example.com',
-      department: 'Computer Science',
-      year: 'TE',
-      resumesScanned: 5,
-      suitableJob: 'Data Analyst',
-      matchRate: '85%',
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      email: 'jane.smith@example.com',
-      department: 'Mechanical',
-      year: 'BE',
-      resumesScanned: 3,
-      suitableJob: 'Design Engineer',
-      matchRate: '75%',
-    },
-    {
-      id: 3,
-      name: 'Alice Brown',
-      email: 'alice.brown@example.com',
-      department: 'Electronics',
-      year: 'SE',
-      resumesScanned: 4,
-      suitableJob: 'Embedded Systems Engineer',
-      matchRate: '80%',
-    },
-    {
-      id: 4,
-      name: 'Bob Johnson',
-      email: 'bob.johnson@example.com',
-      department: 'Civil',
-      year: 'FE',
-      resumesScanned: 2,
-      suitableJob: 'Site Engineer',
-      matchRate: '70%',
-    },
-  ]);
-
-  // State for dropdown filters
+  const [studentsData, setStudentsData] = useState([]);
   const [departmentFilter, setDepartmentFilter] = useState('All');
   const [yearFilter, setYearFilter] = useState('All');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Function to delete a student
-  const handleDelete = (id) => {
-    const updatedData = studentsData.filter((student) => student.id !== id);
-    setStudentsData(updatedData);
+  // Static department options
+  const departments = [
+    'CS',
+    'IT',
+    'MECH',
+    'ELECT',
+    'ENTC',
+    'ECE',
+    'AI&DS',
+    'AI&ML'
+  ];
+  
+  const years = ['FE', 'SE', 'TE', 'BE'];
+
+  // Fetch students data
+  useEffect(() => {
+    fetchStudentsData();
+  }, [departmentFilter, yearFilter]);
+
+  const fetchStudentsData = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:8000/admin/students', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        params: {
+          department: departmentFilter !== 'All' ? departmentFilter : undefined,
+          year: yearFilter !== 'All' ? yearFilter : undefined
+        }
+      });
+      
+      setStudentsData(response.data || []);
+      setError(null);
+    } catch (error) {
+      console.error('Error fetching students data:', error);
+      setError('Failed to fetch student data. Please try again.');
+      setStudentsData([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Filtered data based on dropdown selections
-  const filteredData = studentsData.filter((student) => {
-    return (
-      (departmentFilter === 'All' || student.department === departmentFilter) &&
-      (yearFilter === 'All' || student.year === yearFilter)
-    );
-  });
+  // Handle delete confirmation dialog
+  const handleDeleteClick = (student) => {
+    setSelectedStudent(student);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://localhost:8000/admin/delete-student/${selectedStudent.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      // Refresh the data after deletion
+      fetchStudentsData();
+      setDeleteDialogOpen(false);
+      setSelectedStudent(null);
+    } catch (error) {
+      console.error('Error deleting student:', error);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setSelectedStudent(null);
+  };
 
   return (
     <AppTheme {...props}>
@@ -120,15 +145,13 @@ const StudentDetails = (props) => {
             </Typography>
             <FormControl sx={{ minWidth: 150 }} size="small">
               <Select
-                displayEmpty
                 value={departmentFilter}
                 onChange={(e) => setDepartmentFilter(e.target.value)}
               >
                 <MenuItem value="All">All</MenuItem>
-                <MenuItem value="Computer Science">Computer Science</MenuItem>
-                <MenuItem value="Mechanical">Mechanical</MenuItem>
-                <MenuItem value="Electronics">Electronics</MenuItem>
-                <MenuItem value="Civil">Civil</MenuItem>
+                {departments.map((dept) => (
+                  <MenuItem key={dept} value={dept}>{dept}</MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Box>
@@ -139,66 +162,103 @@ const StudentDetails = (props) => {
             </Typography>
             <FormControl sx={{ minWidth: 120 }} size="small">
               <Select
-                displayEmpty
                 value={yearFilter}
                 onChange={(e) => setYearFilter(e.target.value)}
               >
                 <MenuItem value="All">All</MenuItem>
-                <MenuItem value="FE">FE</MenuItem>
-                <MenuItem value="SE">SE</MenuItem>
-                <MenuItem value="TE">TE</MenuItem>
-                <MenuItem value="BE">BE</MenuItem>
+                {years.map((year) => (
+                  <MenuItem key={year} value={year}>{year}</MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Box>
         </Box>
+
+        {/* Error Message */}
+        {error && (
+          <Typography color="error" sx={{ mb: 2, textAlign: 'center' }}>
+            {error}
+          </Typography>
+        )}
 
         {/* Student Details Table */}
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>ID</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Department</TableCell>
-                <TableCell>Year</TableCell>
-                <TableCell>Resumes Scanned</TableCell>
-                <TableCell>Suitable Job</TableCell>
-                <TableCell>Match Rate</TableCell>
-                <TableCell>Action</TableCell>
+                <TableCell align="center">Sr No</TableCell>
+                <TableCell align="center">Student Name</TableCell>
+                <TableCell align="center">Email</TableCell>
+                <TableCell align="center">Department</TableCell>
+                <TableCell align="center">Year</TableCell>
+                <TableCell align="center">College Name</TableCell>
+                <TableCell align="center">Action</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredData.map((student) => (
-                <TableRow key={student.id}>
-                  <TableCell>{student.id}</TableCell>
-                  <TableCell>{student.name}</TableCell>
-                  <TableCell>{student.email}</TableCell>
-                  <TableCell>{student.department}</TableCell>
-                  <TableCell>{student.year}</TableCell>
-                  <TableCell>{student.resumesScanned}</TableCell>
-                  <TableCell>{student.suitableJob}</TableCell>
-                  <TableCell>{student.matchRate}</TableCell>
-                  <TableCell>
-                    <IconButton
-                        sx={{
-                        backgroundColor: 'red', // Red background color
-                        color: 'white',         // White icon color
-                        '&:hover': {
-                            backgroundColor: 'darkred', // Darker red for hover effect
-                        },
-                        }}
-                        onClick={() => handleDelete(student.id)}
-                    >
-                    <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">Loading...</TableCell>
                 </TableRow>
-              ))}
+              ) : studentsData.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">No students found</TableCell>
+                </TableRow>
+              ) : (
+                studentsData.map((student, index) => (
+                  <TableRow key={student.id}>
+                    <TableCell align="center">{index + 1}</TableCell>
+                    <TableCell align="center">{student.full_name}</TableCell>
+                    <TableCell align="center">{student.email}</TableCell>
+                    <TableCell align="center">{student.department}</TableCell>
+                    <TableCell align="center">{student.year}</TableCell>
+                    <TableCell align="center">{student.college_name}</TableCell>
+                    <TableCell align="center">
+                      <IconButton
+                        sx={{
+                          backgroundColor: 'red',
+                          color: 'white',
+                          '&:hover': {
+                            backgroundColor: 'darkred',
+                          },
+                        }}
+                        onClick={() => handleDeleteClick(student)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </TableContainer>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog
+          open={deleteDialogOpen}
+          onClose={handleDeleteCancel}
+        >
+          <DialogTitle>Confirm Delete</DialogTitle>
+          <DialogContent>
+            <Typography>
+              Are you sure you want to delete the data of {selectedStudent?.full_name}? 
+              This action will remove all associated data including user details, scanned resumes, and analysis results.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleDeleteCancel} color="primary">
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleDeleteConfirm} 
+              color="error" 
+              variant="contained"
+            >
+              Delete
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </AppTheme>
   );
